@@ -1,48 +1,52 @@
 """
-Database Schemas
+Database Schemas for Leiriarte E‑commerce
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model maps to a MongoDB collection (lowercased class name).
 """
+from typing import List, Optional
+from pydantic import BaseModel, Field, EmailStr
 
-from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
-
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
 
 class Product(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Collection: product
+    Represents a customizable product Leiriarte offers
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    title: str = Field(..., description="Product name")
+    description: Optional[str] = Field(None, description="Detailed description")
+    price: float = Field(..., ge=0, description="Base price in EUR")
+    category: str = Field(..., description="Category, e.g., 'Wood', 'Acrylic', 'Metal', 'Sublimation', 'Custom'" )
+    materials: List[str] = Field(default_factory=list, description="Materials used")
+    techniques: List[str] = Field(default_factory=list, description="Techniques like laser cut, engraving, sublimation")
+    images: List[str] = Field(default_factory=list, description="Image URLs")
+    customizable: bool = Field(True, description="Whether personalization is available")
+    featured: bool = Field(False, description="Highlight on homepage")
+    in_stock: bool = Field(True, description="Available for order")
 
-# Add your own schemas here:
-# --------------------------------------------------
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class OrderItem(BaseModel):
+    product_id: str
+    title: str
+    quantity: int = Field(ge=1)
+    unit_price: float = Field(ge=0)
+    personalization: Optional[str] = None
+
+
+class Customer(BaseModel):
+    name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class Order(BaseModel):
+    """
+    Collection: order
+    Stores a simple order with items and customer details
+    """
+    items: List[OrderItem]
+    customer: Customer
+    total_eur: float = Field(ge=0)
+    status: str = Field(default="pending", description="pending|confirmed|fulfilled|cancelled")
